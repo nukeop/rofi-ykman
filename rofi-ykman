@@ -5,7 +5,7 @@
 
 #2019 nukeop
 
-if [ ! $(ykman info) ]
+if [ ! "$(ykman info)" ]
 then
     notify-send "rofi-ykman" "Yubikey not detected."
     exit 1
