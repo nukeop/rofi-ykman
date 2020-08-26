@@ -17,4 +17,4 @@ LAUNCHER="rofi -dmenu -i -p YubikeyOATH"
 option=`echo "${OPTIONS/, TOTP/\n}" | $LAUNCHER`
 code=$(ykman oath code "$option")
 IFS=', ' read -r -a code <<< "$code"
-echo "${code[1]}" | xclip -selection clipboard
+echo "${code[-1]}" | xclip -selection clipboard
