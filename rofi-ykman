@@ -7,7 +7,7 @@
 
 if [ ! "$(ykman info)" ]
 then
-    notify-send "rofi-ykman" "Yubikey not detected."
+    notify-send "rofi-ykman" "Yubikey not detected." -a "rofi-ykman"
     exit 1
 fi
 
