@@ -17,4 +17,18 @@ LAUNCHER="rofi -dmenu -i -p YubikeyOATH"
 option=`echo "${OPTIONS/, TOTP/\n}" | $LAUNCHER`
 code=$(ykman oath code "$option")
 IFS=', ' read -r -a code <<< "$code"
-echo "${code[-1]}" | xclip -selection clipboard
+if [ $XDG_SESSION_TYPE == "wayland" ]
+then
+		cliptool=wl-copy
+    typer="wtype -"
+else
+		cliptool=xclip -selection clipboard
+    typer="xargs xdotool type"
+fi
+if [ "$1" == "type" ]
+then
+    action=$typer
+else
+    action=$cliptool
+fi
+echo "${code[-1]}" | $action
