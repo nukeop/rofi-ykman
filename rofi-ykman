@@ -1,34 +1,84 @@
 #!/usr/bin/env bash
 
 # rofi-ykman
-# Yubikey oath utility
+# YubiKey OATH utility
 
 #2019 nukeop
 
-if [ ! "$(ykman info)" ]
-then
-    notify-send "rofi-ykman" "Yubikey not detected." -a "rofi-ykman"
-    exit 1
-fi
+print_usage() {
+    echo "Usage: rofi-ykman [command]"
+    echo
+    echo "Commands:"
+    echo "  clipboard   Copy the code to the clipboard. (default)"
+    echo "  type        Type the code."
+    echo
+}
 
-OPTIONS=$(ykman oath accounts list)
-LAUNCHER="rofi -dmenu -i -p YubikeyOATH"
+check_yubikey() {
+    if [ ! "$(ykman info)" ]
+    then
+        if hash notify-send 2>/dev/null
+        then
+            notify-send "rofi-ykman" "YubiKey not detected." -a "rofi-ykman"
+        fi
+        exit 1
+    fi
+}
 
-option=`echo "${OPTIONS/, TOTP/\n}" | $LAUNCHER`
-code=$(ykman oath accounts code "$option")
-IFS=', ' read -r -a code <<< "$code"
-if [ $XDG_SESSION_TYPE == "wayland" ]
-then
-		cliptool=wl-copy
-    typer="wtype -"
-else
-		cliptool="xclip -selection clipboard"
-    typer="xargs xdotool type"
-fi
-if [ "$1" == "type" ]
-then
-    action=$typer
-else
-    action=$cliptool
-fi
-echo "${code[-1]}" | $action
+clipboard () {
+    if [ $XDG_SESSION_TYPE == "wayland" ]
+    then
+        wl-copy
+    else
+        xclip -selection clipboard
+    fi
+}
+
+type () {
+    if [ $XDG_SESSION_TYPE == "wayland" ]
+    then
+        wtype -
+    else
+        xargs xdotool type
+    fi
+}
+
+# shortcuts
+type="Alt+1"
+clipboard="Alt+2"
+
+main() {
+    accounts=$(ykman oath accounts list)
+
+    shortcuts=(
+        -kb-custom-1 "$type"
+        -kb-custom-2 "$clipboard"
+    )
+    prompt="YubiKey OATH"
+    
+    account=$(echo "${accounts/, TOTP/\n}" | rofi -dmenu -i -p "$prompt" ${shortcuts[@]})
+    case $? in
+        1) exit ;;
+        10) command=type ;;
+        11) command=clipboard ;;
+        *) command=$default_command ;;
+    esac
+
+    code=$(ykman oath accounts code "$account")
+    IFS=', ' read -r -a code <<< "$code"
+
+    case $command in
+        clipboard) echo -n "${code[-1]}" | clipboard;;
+        type) echo -n "${code[-1]}" | type;;
+    esac
+}
+
+default_command="${1:-clipboard}"
+
+case $default_command in
+    clipboard|type) ;;
+    *) print_usage; exit 1;;
+esac
+
+check_yubikey
+main
